@@ -3,4 +3,7 @@ src = "src"
 out = "out"
 libs = ["lib"]
 
+[rpc_endpoints]
+mainnet = "https://mainnet.infura.io/v3/04f48bfc52a34ef5ae84a5e192d9748a"
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
