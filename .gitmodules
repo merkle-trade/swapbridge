@@ -4,3 +4,6 @@
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "lib/LayerZero-Aptos-Contract"]
+	path = lib/LayerZero-Aptos-Contract
+	url = https://github.com/LayerZero-Labs/LayerZero-Aptos-Contract
