@@ -1,30 +1,47 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {IERC20} from "forge-std/interfaces/IERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "forge-std/console.sol";
 
 contract SwapBridge {
-    function approveMax(address erc20, address spender) public {
-        bool approved = IERC20(erc20).approve(spender, type(uint256).max);
-        require(approved, "ERC20 approve failed");
+    function approveMax(IERC20 token, address spender) public {
+        SafeERC20.forceApprove(token, spender, type(uint256).max);
     }
 
     function swap(
-        address fromToken,
+        IERC20 fromToken,
         uint256 fromAmount,
-        address toToken,
+        IERC20 toToken,
         address swapTarget,
         bytes calldata swapBytes
     ) public {
-        IERC20 from = IERC20(fromToken);
-        IERC20 to = IERC20(toToken);
+        SafeERC20.safeTransferFrom(
+            fromToken,
+            msg.sender,
+            address(this),
+            fromAmount
+        );
 
-        from.transferFrom(msg.sender, address(this), fromAmount);
-
+        SafeERC20.forceApprove(fromToken, swapTarget, type(uint256).max);
         (bool success, ) = swapTarget.call(swapBytes);
         require(success, "Swap failed");
 
-        from.transfer(msg.sender, from.balanceOf(address(this)));
-        to.transfer(msg.sender, to.balanceOf(address(this)));
+        SafeERC20.safeTransfer(fromToken, msg.sender, fromToken.balanceOf(address(this)));
+        SafeERC20.safeTransfer(toToken, msg.sender, toToken.balanceOf(address(this)));
     }
+
+    function swapAndSendToAptos(
+        IERC20 fromToken,
+        uint256 fromAmount,
+        IERC20 toToken,
+        uint256 toAmount,
+        address swapTarget,
+        bytes calldata swapBytes
+    ) public {
+        swap(fromToken, fromAmount, toToken, swapTarget, swapBytes);
+
+    }
+
 }
