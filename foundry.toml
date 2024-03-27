@@ -4,6 +4,11 @@ out = "out"
 libs = ["lib"]
 
 [rpc_endpoints]
-mainnet = "https://mainnet.infura.io/v3/04f48bfc52a34ef5ae84a5e192d9748a"
+mainnet = "https://mainnet.infura.io/v3/${INFURA_KEY}"
+sepolia = "https://sepolia.infura.io/v3/${INFURA_KEY}"
+bsc = "${BSC_RPC}"
+
+[etherscan]
+sepolia = { key = "${ETHERSCAN_KEY}" }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

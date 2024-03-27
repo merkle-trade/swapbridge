@@ -26,41 +26,41 @@ contract SwapBridge {
     }
 
     function swapAndSendToAptos(
-        IERC20 fromToken,
-        uint256 fromAmount,
-        IERC20 toToken,
-        uint256 toAmount,
-        bytes32 aptosAddress,
-        address swapTarget,
-        bytes calldata swapBytes
+        IERC20 _fromToken,
+        uint256 _fromAmount,
+        IERC20 _toToken,
+        uint256 _toAmount,
+        bytes32 _aptosAddress,
+        address _swapTarget,
+        bytes calldata _swapBytes
     ) public payable {
         uint256 actualToAmount;
         {
-            SafeERC20.safeTransferFrom(fromToken, msg.sender, address(this), fromAmount);
+            SafeERC20.safeTransferFrom(_fromToken, msg.sender, address(this), _fromAmount);
 
-            (bool success,) = swapTarget.call(swapBytes);
+            (bool success,) = _swapTarget.call(_swapBytes);
             require(success, "Swap failed");
 
-            actualToAmount = toToken.balanceOf(address(this));
-            require(actualToAmount >= toAmount, "toAmount");
+            actualToAmount = _toToken.balanceOf(address(this));
+            require(actualToAmount >= _toAmount, "toAmount");
 
-            if (fromToken.balanceOf(address(this)) > 0) {
-                SafeERC20.safeTransfer(fromToken, msg.sender, fromToken.balanceOf(address(this)));
+            if (_fromToken.balanceOf(address(this)) > 0) {
+                SafeERC20.safeTransfer(_fromToken, msg.sender, _fromToken.balanceOf(address(this)));
             }
         }
 
         {
-            SafeERC20.forceApprove(toToken, address(tokenBridge), type(uint256).max);
-            (LzLib.CallParams memory callParams, bytes memory adapterParams) = _lzParams(aptosAddress);
+            SafeERC20.forceApprove(_toToken, address(tokenBridge), type(uint256).max);
+            (LzLib.CallParams memory callParams, bytes memory adapterParams) = _lzParams(_aptosAddress);
             tokenBridge.sendToAptos{value: msg.value}(
-                address(toToken), aptosAddress, toToken.balanceOf(address(this)), callParams, adapterParams
+                address(_toToken), _aptosAddress, _toToken.balanceOf(address(this)), callParams, adapterParams
             );
         }
 
-        require(toToken.balanceOf(address(this)) == 0, "toToken remaining");
+        require(_toToken.balanceOf(address(this)) == 0, "toToken remaining");
     }
 
-    function _lzParams(bytes32 aptosAddress)
+    function _lzParams(bytes32 _aptosAddress)
         private
         view
         returns (LzLib.CallParams memory callParams, bytes memory adapterParams)
@@ -68,18 +68,9 @@ contract SwapBridge {
         callParams = LzLib.CallParams({refundAddress: payable(msg.sender), zroPaymentAddress: address(0x0)});
         adapterParams = LzLib.buildAirdropAdapterParams(
             10000, // uaGas
-            LzLib.AirdropParams({airdropAmount: APT_AIRDROP_AMOUNT, airdropAddress: aptosAddress})
+            LzLib.AirdropParams({airdropAmount: APT_AIRDROP_AMOUNT, airdropAddress: _aptosAddress})
         );
     }
 }
 
 // TODO layerzero msg 의 msg.sender 대신 tx 의 from 을 봐야 함 (tx.origin)
-// TODO paraswap build tx 할 때 userAddress, txOrigin, receiver
-
-// txType 2
-// bytes  [2       32        32            bytes[]         ]
-// fields [txType  extraGas  dstNativeAmt  dstNativeAddress]
-// 0002
-// 0000000000000000000000000000000000000000000000000000000000002710
-// 0000000000000000000000000000000000000000000000000000000000000000
-// 1cc57f0fe249bc7278c2e38e85a85ca6c9e0ee51b47ff073797c31702d93a4cb
