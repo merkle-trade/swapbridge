@@ -16,8 +16,7 @@ contract SwapBridgeTest is Test {
     address constant paraswapTokenTransferProxy = 0x216B4B4Ba9F3e719726886d34a177484278Bfcae;
 
     address deployer;
-
-    SwapBridge public swapBridge;
+    SwapBridge swapBridge;
 
     function setUp() public {
         uint256 mainnetForkBlock = 19_516_762;
@@ -27,7 +26,8 @@ contract SwapBridgeTest is Test {
         assertEq(deployer, 0xaE0bDc4eEAC5E950B67C6819B118761CaAF61946);
 
         hoax(deployer);
-        swapBridge = new SwapBridge(lzTokenBridge);
+        swapBridge = new SwapBridge();
+        swapBridge.initialize(lzTokenBridge);
         assertEq(address(swapBridge), 0x8Ad159a275AEE56fb2334DBb69036E9c7baCEe9b);
 
         // fromUser
@@ -35,13 +35,22 @@ contract SwapBridgeTest is Test {
         assertEq(usdc.balanceOf(fromUser), 0);
     }
 
+    function test_InitializeOnlyOnce() public {
+        swapBridge = new SwapBridge();
+        swapBridge.initialize(address(0x1));
+        vm.expectRevert("Already init");
+        swapBridge.initialize(address(0x1));
+    }
+
     function test_SwapAndSendToAptos_ParaSwap() public {
+        swapBridge.approveMax(usdc, lzTokenBridge);
         swapBridge.approveMax(usdt, paraswapTokenTransferProxy);
         (uint256 nativeFee,) = swapBridge.quoteForSend();
 
         startHoax(fromUser);
+        uint256 prevBalance = address(fromUser).balance;
         SafeERC20.safeIncreaseAllowance(usdt, address(swapBridge), 1_000_000_000);
-        swapBridge.swapAndSendToAptos{value: nativeFee}(
+        swapBridge.swapAndSendToAptos{value: nativeFee + 100_000}(
             usdt,
             1_000_000_000, // 1000 USDT
             usdc,
@@ -54,15 +63,18 @@ contract SwapBridgeTest is Test {
         assertEq(usdc.balanceOf(fromUser), 0);
         assertEq(usdt.balanceOf(address(swapBridge)), 0);
         assertEq(usdc.balanceOf(address(swapBridge)), 0);
+        assertEq(address(fromUser).balance, prevBalance - nativeFee); // check refund
     }
 
-    function test_Swap_ParaSwap_toAmount() public {
+    function test_SwapAndSendToAptos_Fail_ToAmount() public {
+        swapBridge.approveMax(usdc, lzTokenBridge);
         swapBridge.approveMax(usdt, paraswapTokenTransferProxy);
         (uint256 nativeFee,) = swapBridge.quoteForSend();
 
         startHoax(fromUser);
         SafeERC20.safeIncreaseAllowance(usdt, address(swapBridge), 1_000_000_000);
         vm.expectRevert("toAmount");
+        // vm.expectEmit(checkTopic1, checkTopic2, checkTopic3, checkData);
         swapBridge.swapAndSendToAptos{value: nativeFee}(
             usdt,
             1_000_000_000, // 1000 USDT

@@ -4,15 +4,19 @@ pragma solidity ^0.8.13;
 import "forge-std/console.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ITokenBridge} from "LayerZero-Aptos-Contract/apps/bridge-evm/contracts/interfaces/ITokenBridge.sol";
 import {LzLib} from "@layerzerolabs/solidity-examples/contracts/libraries/LzLib.sol";
 
 contract SwapBridge {
     uint256 constant APT_AIRDROP_AMOUNT = 9904;
 
-    ITokenBridge immutable tokenBridge;
+    bool isInit;
+    ITokenBridge tokenBridge;
 
-    constructor(address _tokenBridgeAddress) {
+    function initialize(address _tokenBridgeAddress) public {
+        require(!isInit, "Already init");
+        isInit = true;
         tokenBridge = ITokenBridge(_tokenBridgeAddress);
     }
 
@@ -34,28 +38,22 @@ contract SwapBridge {
         address _swapTarget,
         bytes calldata _swapBytes
     ) public payable {
-        uint256 actualToAmount;
-        {
-            SafeERC20.safeTransferFrom(_fromToken, msg.sender, address(this), _fromAmount);
+        SafeERC20.safeTransferFrom(_fromToken, msg.sender, address(this), _fromAmount);
 
-            (bool success,) = _swapTarget.call(_swapBytes);
-            require(success, "Swap failed");
+        Address.functionCall(_swapTarget, _swapBytes);
 
-            actualToAmount = _toToken.balanceOf(address(this));
-            require(actualToAmount >= _toAmount, "toAmount");
+        uint256 actualToAmount = _toToken.balanceOf(address(this));
+        require(actualToAmount >= _toAmount, "toAmount");
 
-            if (_fromToken.balanceOf(address(this)) > 0) {
-                SafeERC20.safeTransfer(_fromToken, msg.sender, _fromToken.balanceOf(address(this)));
-            }
+        uint256 residue = _fromToken.balanceOf(address(this));
+        if (residue > 0) {
+            SafeERC20.safeTransfer(_fromToken, msg.sender, residue);
         }
 
-        {
-            SafeERC20.forceApprove(_toToken, address(tokenBridge), type(uint256).max);
-            (LzLib.CallParams memory callParams, bytes memory adapterParams) = _lzParams(_aptosAddress);
-            tokenBridge.sendToAptos{value: msg.value}(
-                address(_toToken), _aptosAddress, _toToken.balanceOf(address(this)), callParams, adapterParams
-            );
-        }
+        (LzLib.CallParams memory callParams, bytes memory adapterParams) = _lzParams(_aptosAddress);
+        tokenBridge.sendToAptos{value: msg.value}(
+            address(_toToken), _aptosAddress, actualToAmount, callParams, adapterParams
+        );
 
         require(_toToken.balanceOf(address(this)) == 0, "toToken remaining");
     }
