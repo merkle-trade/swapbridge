@@ -4,19 +4,18 @@ pragma solidity ^0.8.13;
 import "forge-std/console.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ITokenBridge} from "LayerZero-Aptos-Contract/apps/bridge-evm/contracts/interfaces/ITokenBridge.sol";
 import {LzLib} from "@layerzerolabs/solidity-examples/contracts/libraries/LzLib.sol";
 
-contract SwapBridge {
+contract SwapBridge is Ownable {
     uint256 constant APT_AIRDROP_AMOUNT = 9904;
 
     bool isInit;
     ITokenBridge tokenBridge;
 
-    function initialize(address _tokenBridgeAddress) public {
-        require(!isInit, "Already init");
-        isInit = true;
+    constructor(address _tokenBridgeAddress) Ownable(_msgSender()) {
         tokenBridge = ITokenBridge(_tokenBridgeAddress);
     }
 
@@ -56,6 +55,12 @@ contract SwapBridge {
         );
 
         require(_toToken.balanceOf(address(this)) == 0, "toToken remaining");
+    }
+
+    function rescueToken(IERC20 _token, address _recipient) external onlyOwner {
+        uint256 tokenBalance = _token.balanceOf(address(this));
+        require(tokenBalance > 0, "Nothing to rescue");
+        SafeERC20.safeTransfer(_token, _recipient, tokenBalance);
     }
 
     function _lzParams(bytes32 _aptosAddress)

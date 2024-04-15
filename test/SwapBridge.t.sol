@@ -26,20 +26,12 @@ contract SwapBridgeTest is Test {
         assertEq(deployer, 0xaE0bDc4eEAC5E950B67C6819B118761CaAF61946);
 
         hoax(deployer);
-        swapBridge = new SwapBridge();
-        swapBridge.initialize(lzTokenBridge);
+        swapBridge = new SwapBridge(lzTokenBridge);
         assertEq(address(swapBridge), 0x8Ad159a275AEE56fb2334DBb69036E9c7baCEe9b);
 
         // fromUser
         assertGt(usdt.balanceOf(fromUser), 100_000_000_000);
         assertEq(usdc.balanceOf(fromUser), 0);
-    }
-
-    function test_InitializeOnlyOnce() public {
-        swapBridge = new SwapBridge();
-        swapBridge.initialize(address(0x1));
-        vm.expectRevert("Already init");
-        swapBridge.initialize(address(0x1));
     }
 
     function test_SwapAndSendToAptos_ParaSwap() public {
@@ -74,7 +66,6 @@ contract SwapBridgeTest is Test {
         startHoax(fromUser);
         SafeERC20.safeIncreaseAllowance(usdt, address(swapBridge), 1_000_000_000);
         vm.expectRevert("toAmount");
-        // vm.expectEmit(checkTopic1, checkTopic2, checkTopic3, checkData);
         swapBridge.swapAndSendToAptos{value: nativeFee}(
             usdt,
             1_000_000_000, // 1000 USDT
@@ -84,5 +75,15 @@ contract SwapBridgeTest is Test {
             paraswapAugustusSwapper,
             hex"0b86a4c1000000000000000000000000dac17f958d2ee523a2206206994597c13d831ec7000000000000000000000000000000000000000000000000000000003b9aca00000000000000000000000000000000000000000000000000000000003b689ce1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000001000000000000000000004de53041cbd36888becc7bbcbc0045e3b1f144466f5f"
         );
+    }
+
+    function test_Rescue() public {
+        hoax(fromUser);
+        SafeERC20.safeTransfer(usdt, address(swapBridge), 1_000_000_000);
+
+        address recipient = makeAddr("recipient");
+        hoax(deployer);
+        swapBridge.rescueToken(usdt, recipient);
+        assertEq(usdt.balanceOf(recipient), 1_000_000_000);
     }
 }
