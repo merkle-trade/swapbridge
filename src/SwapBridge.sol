@@ -40,16 +40,17 @@ contract SwapBridge is Ownable {
         address _swapTarget,
         bytes calldata _swapBytes
     ) public payable {
+        uint256 fromTokenOrgBalance = _fromToken.balanceOf(address(this));
         uint256 toTokenOrgBalance = _toToken.balanceOf(address(this));
 
         SafeERC20.safeTransferFrom(_fromToken, msg.sender, address(this), _fromAmount);
 
         Address.functionCall(_swapTarget, _swapBytes);
 
-        uint256 actualToAmount = _toToken.balanceOf(address(this));
+        uint256 actualToAmount = _toToken.balanceOf(address(this)) - toTokenOrgBalance;
         require(actualToAmount >= _toAmount, "toAmount");
 
-        uint256 residue = _fromToken.balanceOf(address(this));
+        uint256 residue = _fromToken.balanceOf(address(this)) - fromTokenOrgBalance;
         if (residue > 0) {
             SafeERC20.safeTransfer(_fromToken, msg.sender, residue);
         }
@@ -62,14 +63,14 @@ contract SwapBridge is Ownable {
     }
 
     function sendToAptos(IERC20 _token, uint256 _amount, bytes32 _aptosAddress) public payable {
-        uint256 toTokenOrgBalance = _token.balanceOf(address(this));
+        uint256 tokenOrgBalance = _token.balanceOf(address(this));
 
         SafeERC20.safeTransferFrom(_token, msg.sender, address(this), _amount);
 
         _sendToAptos(address(_token), _amount, _aptosAddress);
 
-        if (_token.balanceOf(address(this)) > toTokenOrgBalance) {
-            SafeERC20.safeTransfer(_token, msg.sender, _token.balanceOf(address(this)) - toTokenOrgBalance);
+        if (_token.balanceOf(address(this)) > tokenOrgBalance) {
+            SafeERC20.safeTransfer(_token, msg.sender, _token.balanceOf(address(this)) - tokenOrgBalance);
         }
     }
 

@@ -67,6 +67,35 @@ contract SwapBridgeTest is Test {
         assertEq(address(fromUser).balance, prevBalance - nativeFee); // check refund
     }
 
+    function test_SwapAndSendToAptos_PreserveOrgBalance() public {
+        swapBridge.approveMax(usdc, lzTokenBridge);
+        swapBridge.approveMax(usdt, paraswapTokenTransferProxy);
+        (uint256 nativeFee,) = swapBridge.quoteForSend();
+
+        address usdcRich = 0x4B16c5dE96EB2117bBE5fd171E4d203624B014aa;
+        hoax(usdcRich);
+        SafeERC20.safeTransfer(usdc, address(swapBridge), 1e6); // toToken org balance
+
+        startHoax(fromUser);
+        SafeERC20.safeTransfer(usdt, address(swapBridge), 2e6); // fromToken org balance
+        uint256 prevBalance = address(fromUser).balance;
+        SafeERC20.safeIncreaseAllowance(usdt, address(swapBridge), 1_000_000_000);
+        swapBridge.swapAndSendToAptos{value: nativeFee + 100_000}(
+            usdt,
+            1_000_000_000, // 1000 USDT
+            usdc,
+            990_000_000,
+            hex"01",
+            paraswapAugustusSwapper,
+            hex"0b86a4c1000000000000000000000000dac17f958d2ee523a2206206994597c13d831ec7000000000000000000000000000000000000000000000000000000003b9aca00000000000000000000000000000000000000000000000000000000003b689ce1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000001000000000000000000004de53041cbd36888becc7bbcbc0045e3b1f144466f5f"
+        );
+        assertEq(address(swapBridge).balance, 0);
+        assertEq(usdc.balanceOf(fromUser), 0);
+        assertEq(usdt.balanceOf(address(swapBridge)), 2e6);
+        assertEq(usdc.balanceOf(address(swapBridge)), 1e6);
+        assertEq(address(fromUser).balance, prevBalance - nativeFee); // check refund
+    }
+
     function test_SwapAndSendToAptos_Fail_ToAmount() public {
         swapBridge.approveMax(usdc, lzTokenBridge);
         swapBridge.approveMax(usdt, paraswapTokenTransferProxy);
@@ -143,7 +172,7 @@ contract SwapBridgeTest_Bsc is Test {
     }
 
     // refund toToken leftover to user when toToken decimal is greater than 6
-    function test_SwapAndSendToAptos_Leftover() public {
+    function test_SwapAndSendToAptos_ToToken_Leftover() public {
         swapBridge.approveMax(usdc, lzTokenBridge);
         swapBridge.approveMax(usdt, paraswapTokenTransferProxy);
         (uint256 nativeFee,) = swapBridge.quoteForSend();
@@ -162,7 +191,7 @@ contract SwapBridgeTest_Bsc is Test {
         );
         assertEq(address(swapBridge).balance, 0);
         assertGt(usdc.balanceOf(fromUser), fromUserUsdcOrgBalance);
-        assertLt(usdc.balanceOf(fromUser), fromUserUsdcOrgBalance + 1e18);
+        assertLt(usdc.balanceOf(fromUser), fromUserUsdcOrgBalance + 1e12); // refunded leftover (less than 6 decimals)
         assertEq(usdt.balanceOf(address(swapBridge)), 0);
         assertEq(usdc.balanceOf(address(swapBridge)), 0);
     }
