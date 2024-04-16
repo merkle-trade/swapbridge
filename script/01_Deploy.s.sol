@@ -6,7 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SwapBridge} from "../src/SwapBridge.sol";
 
 abstract contract DeployScript is Script {
-    bytes32 constant SALT = hex"fa1d23fff4";
+    bytes32 constant SALT = hex"fa1d23fff8";
 }
 
 contract DeployScript_Sepolia is DeployScript {
@@ -17,10 +17,10 @@ contract DeployScript_Sepolia is DeployScript {
     function run() public {
         address lzTokenBridge = 0x50002CdFe7CCb0C41F519c6Eb0653158d11cd907;
         IERC20 usdc = IERC20(0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238);
-        address paraswapTokenTransferProxy = 0x216B4B4Ba9F3e719726886d34a177484278Bfcae;
 
         vm.startBroadcast();
-        SwapBridge swapBridge = new SwapBridge{salt: SALT}(lzTokenBridge);
+        SwapBridge swapBridge = new SwapBridge{salt: SALT}();
+        swapBridge.initialize(lzTokenBridge);
         swapBridge.approveMax(usdc, lzTokenBridge);
         vm.stopBroadcast();
 
@@ -39,7 +39,8 @@ contract DeployScript_Mainnet is DeployScript {
         address paraswapTokenTransferProxy = 0x216B4B4Ba9F3e719726886d34a177484278Bfcae;
 
         vm.startBroadcast();
-        SwapBridge swapBridge = new SwapBridge{salt: SALT}(lzTokenBridge);
+        SwapBridge swapBridge = new SwapBridge{salt: SALT}();
+        swapBridge.initialize(lzTokenBridge);
         swapBridge.approveMax(usdc, lzTokenBridge);
         swapBridge.approveMax(IERC20(0xdAC17F958D2ee523a2206206994597C13D831ec7), paraswapTokenTransferProxy); // USDT
         swapBridge.approveMax(IERC20(0x6B175474E89094C44Da98b954EedeAC495271d0F), paraswapTokenTransferProxy); // DAI
@@ -62,7 +63,8 @@ contract DeployScript_Bsc is DeployScript {
         address paraswapTokenTransferProxy = 0x216B4B4Ba9F3e719726886d34a177484278Bfcae;
 
         vm.startBroadcast();
-        SwapBridge swapBridge = new SwapBridge{salt: SALT}(lzTokenBridge);
+        SwapBridge swapBridge = new SwapBridge{salt: SALT}();
+        swapBridge.initialize(lzTokenBridge);
         swapBridge.approveMax(usdc, lzTokenBridge);
         swapBridge.approveMax(IERC20(0x55d398326f99059fF775485246999027B3197955), paraswapTokenTransferProxy); // USDT
         vm.stopBroadcast();
@@ -82,7 +84,8 @@ contract DeployScript_Polygon is DeployScript {
         address paraswapTokenTransferProxy = 0x216B4B4Ba9F3e719726886d34a177484278Bfcae;
 
         vm.startBroadcast();
-        SwapBridge swapBridge = new SwapBridge{salt: SALT}(lzTokenBridge);
+        SwapBridge swapBridge = new SwapBridge{salt: SALT}();
+        swapBridge.initialize(lzTokenBridge);
         swapBridge.approveMax(usdc, lzTokenBridge);
         swapBridge.approveMax(IERC20(0xc2132D05D31c914a87C6611C10748AEb04B58e8F), paraswapTokenTransferProxy); // USDT
         swapBridge.approveMax(IERC20(0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359), paraswapTokenTransferProxy); // USDC
@@ -104,7 +107,8 @@ contract DeployScript_Avalanche is DeployScript {
         address paraswapTokenTransferProxy = 0x216B4B4Ba9F3e719726886d34a177484278Bfcae;
 
         vm.startBroadcast();
-        SwapBridge swapBridge = new SwapBridge{salt: SALT}(lzTokenBridge);
+        SwapBridge swapBridge = new SwapBridge{salt: SALT}();
+        swapBridge.initialize(lzTokenBridge);
         swapBridge.approveMax(usdc, lzTokenBridge);
         swapBridge.approveMax(IERC20(0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7), paraswapTokenTransferProxy); // USDT
         swapBridge.approveMax(IERC20(0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664), paraswapTokenTransferProxy); // USDC.e
@@ -125,7 +129,8 @@ contract DeployScript_Arbitrum is DeployScript {
         address paraswapTokenTransferProxy = 0x216B4B4Ba9F3e719726886d34a177484278Bfcae;
 
         vm.startBroadcast();
-        SwapBridge swapBridge = new SwapBridge{salt: SALT}(lzTokenBridge);
+        SwapBridge swapBridge = new SwapBridge{salt: SALT}();
+        swapBridge.initialize(lzTokenBridge);
         swapBridge.approveMax(usdc, lzTokenBridge);
         swapBridge.approveMax(IERC20(0xaf88d065e77c8cC2239327C5EDb3A432268e5831), paraswapTokenTransferProxy); // USDC
         swapBridge.approveMax(IERC20(0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9), paraswapTokenTransferProxy); // USDT
@@ -148,7 +153,8 @@ contract DeployScript_Optimism is DeployScript {
         address paraswapTokenTransferProxy = 0x216B4B4Ba9F3e719726886d34a177484278Bfcae;
 
         vm.startBroadcast();
-        SwapBridge swapBridge = new SwapBridge{salt: SALT}(lzTokenBridge);
+        SwapBridge swapBridge = new SwapBridge{salt: SALT}();
+        swapBridge.initialize(lzTokenBridge);
         swapBridge.approveMax(usdc, lzTokenBridge);
         swapBridge.approveMax(IERC20(0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85), paraswapTokenTransferProxy); // USDC
         swapBridge.approveMax(IERC20(0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1), paraswapTokenTransferProxy); // DAI

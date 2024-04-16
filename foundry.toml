@@ -8,13 +8,31 @@ solc_version = "0.8.25"
 mainnet = "https://mainnet.infura.io/v3/${INFURA_KEY}"
 sepolia = "https://sepolia.infura.io/v3/${INFURA_KEY}"
 bsc = "${BSC_RPC}"
+bsc-testnet = "https://bsc-testnet-rpc.publicnode.com"
 polygon = "https://polygon-mainnet.infura.io/v3/${INFURA_KEY}"
 avalanche = "https://avalanche-mainnet.infura.io/v3/${INFURA_KEY}"
+avalanche-fuji = "https://avalanche-fuji.infura.io/v3/${INFURA_KEY}"
 arbitrum = "https://arbitrum-mainnet.infura.io/v3/${INFURA_KEY}"
+arbitrum-sepolia = "https://arbitrum-sepolia.infura.io/v3/${INFURA_KEY}"
 optimism = "https://optimism-mainnet.infura.io/v3/${INFURA_KEY}"
+optimism-sepolia = "https://optimism-sepolia.infura.io/v3/${INFURA_KEY}"
 
 [etherscan]
-sepolia = { key = "${ETHERSCAN_KEY}" }
+mainnet = { key = "${ETHERSCAN_KEY}" }
+sepolia = { key = "${ETHERSCAN_KEY}" } # ok
+
+bsc = { key = "${BSCSCAN_KEY}" }
+bsc-testnet = { key = "${BSCSCAN_KEY}" } # ok
+
+polygon = { key = "${POLYGONSCAN_KEY}" }
+
+avalanche = { key = "verifyContract" }
+avalanche-fuji = { key = "verifyContract" } # ok
+
 arbitrum = { key = "${ARBISCAN_KEY}" }
+arbitrum-sepolia = { key = "${ARBISCAN_KEY}" } # ok
+
+optimism = { key = "${OPTIMISTIC_ETHERSCAN_KEY}" }
+optimism-sepolia = { key = "${OPTIMISTIC_ETHERSCAN_KEY}" } # ok
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

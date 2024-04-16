@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
 import "forge-std/console.sol";
@@ -15,7 +15,11 @@ contract SwapBridge is Ownable {
     bool isInit;
     ITokenBridge tokenBridge;
 
-    constructor(address _tokenBridgeAddress) Ownable(_msgSender()) {
+    constructor() Ownable(_msgSender()) {}
+
+    function initialize(address _tokenBridgeAddress) public {
+        require(!isInit, "Already init");
+        isInit = true;
         tokenBridge = ITokenBridge(_tokenBridgeAddress);
     }
 
@@ -49,12 +53,22 @@ contract SwapBridge is Ownable {
             SafeERC20.safeTransfer(_fromToken, msg.sender, residue);
         }
 
-        (LzLib.CallParams memory callParams, bytes memory adapterParams) = _lzParams(_aptosAddress);
-        tokenBridge.sendToAptos{value: msg.value}(
-            address(_toToken), _aptosAddress, actualToAmount, callParams, adapterParams
-        );
+        _sendToAptos(address(_toToken), actualToAmount, _aptosAddress);
 
         require(_toToken.balanceOf(address(this)) == 0, "toToken remaining");
+    }
+
+    function sendToAptos(IERC20 _token, uint256 _amount, bytes32 _aptosAddress) public payable {
+        SafeERC20.safeTransferFrom(_token, msg.sender, address(this), _amount);
+
+        _sendToAptos(address(_token), _amount, _aptosAddress);
+
+        require(_token.balanceOf(address(this)) == 0, "toToken remaining");
+    }
+
+    function _sendToAptos(address _tokenAddress, uint256 _amount, bytes32 _aptosAddress) private {
+        (LzLib.CallParams memory callParams, bytes memory adapterParams) = _lzParams(_aptosAddress);
+        tokenBridge.sendToAptos{value: msg.value}(_tokenAddress, _aptosAddress, _amount, callParams, adapterParams);
     }
 
     function rescueToken(IERC20 _token, address _recipient) external onlyOwner {
@@ -75,5 +89,3 @@ contract SwapBridge is Ownable {
         );
     }
 }
-
-// TODO layerzero msg 의 msg.sender 대신 tx 의 from 을 봐야 함 (tx.origin)
