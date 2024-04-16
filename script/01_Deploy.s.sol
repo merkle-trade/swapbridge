@@ -6,7 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SwapBridge} from "../src/SwapBridge.sol";
 
 abstract contract DeployScript is Script {
-    bytes32 constant SALT = hex"fa1d23fff8";
+    bytes32 constant SALT = bytes32(bytes("merkle"));
 }
 
 contract DeployScript_Sepolia is DeployScript {
@@ -111,6 +111,7 @@ contract DeployScript_Avalanche is DeployScript {
         swapBridge.initialize(lzTokenBridge);
         swapBridge.approveMax(usdc, lzTokenBridge);
         swapBridge.approveMax(IERC20(0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7), paraswapTokenTransferProxy); // USDT
+        swapBridge.approveMax(IERC20(0xc7198437980c041c805A1EDcbA50c1Ce5db95118), paraswapTokenTransferProxy); // USDT.e
         swapBridge.approveMax(IERC20(0xA7D7079b0FEaD91F3e65f86E8915Cb59c1a4C664), paraswapTokenTransferProxy); // USDC.e
         vm.stopBroadcast();
 

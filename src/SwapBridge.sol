@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.21;
 
-import "forge-std/console.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -17,7 +16,7 @@ contract SwapBridge is Ownable {
 
     constructor() Ownable(_msgSender()) {}
 
-    function initialize(address _tokenBridgeAddress) public {
+    function initialize(address _tokenBridgeAddress) public onlyOwner {
         require(!isInit, "Already init");
         isInit = true;
         tokenBridge = ITokenBridge(_tokenBridgeAddress);
@@ -41,6 +40,8 @@ contract SwapBridge is Ownable {
         address _swapTarget,
         bytes calldata _swapBytes
     ) public payable {
+        uint256 toTokenOrgBalance = _toToken.balanceOf(address(this));
+
         SafeERC20.safeTransferFrom(_fromToken, msg.sender, address(this), _fromAmount);
 
         Address.functionCall(_swapTarget, _swapBytes);
@@ -55,15 +56,21 @@ contract SwapBridge is Ownable {
 
         _sendToAptos(address(_toToken), actualToAmount, _aptosAddress);
 
-        require(_toToken.balanceOf(address(this)) == 0, "toToken remaining");
+        if (_toToken.balanceOf(address(this)) > toTokenOrgBalance) {
+            SafeERC20.safeTransfer(_toToken, msg.sender, _toToken.balanceOf(address(this)) - toTokenOrgBalance);
+        }
     }
 
     function sendToAptos(IERC20 _token, uint256 _amount, bytes32 _aptosAddress) public payable {
+        uint256 toTokenOrgBalance = _token.balanceOf(address(this));
+
         SafeERC20.safeTransferFrom(_token, msg.sender, address(this), _amount);
 
         _sendToAptos(address(_token), _amount, _aptosAddress);
 
-        require(_token.balanceOf(address(this)) == 0, "toToken remaining");
+        if (_token.balanceOf(address(this)) > toTokenOrgBalance) {
+            SafeERC20.safeTransfer(_token, msg.sender, _token.balanceOf(address(this)) - toTokenOrgBalance);
+        }
     }
 
     function _sendToAptos(address _tokenAddress, uint256 _amount, bytes32 _aptosAddress) private {

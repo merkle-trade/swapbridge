@@ -25,9 +25,10 @@ contract SwapBridgeTest is Test {
         deployer = makeAddr("deployer");
         assertEq(deployer, 0xaE0bDc4eEAC5E950B67C6819B118761CaAF61946);
 
-        hoax(deployer);
+        startHoax(deployer);
         swapBridge = new SwapBridge();
         swapBridge.initialize(lzTokenBridge);
+        vm.stopPrank();
         assertEq(address(swapBridge), 0x8Ad159a275AEE56fb2334DBb69036E9c7baCEe9b);
 
         // fromUser
@@ -110,5 +111,59 @@ contract SwapBridgeTest is Test {
         hoax(deployer);
         swapBridge.rescueToken(usdt, recipient);
         assertEq(usdt.balanceOf(recipient), 1_000_000_000);
+    }
+}
+
+contract SwapBridgeTest_Bsc is Test {
+    IERC20 constant usdt = IERC20(0x55d398326f99059fF775485246999027B3197955);
+    IERC20 constant usdc = IERC20(0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d);
+
+    address constant fromUser = 0xD183F2BBF8b28d9fec8367cb06FE72B88778C86B; // some rich guy
+    address constant lzTokenBridge = 0x2762409Baa1804D94D8c0bCFF8400B78Bf915D5B;
+    address constant paraswapAugustusSwapper = 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57;
+    address constant paraswapTokenTransferProxy = 0x216B4B4Ba9F3e719726886d34a177484278Bfcae;
+
+    address deployer;
+    SwapBridge swapBridge;
+
+    function setUp() public {
+        uint256 mainnetForkBlock = 37_908_811;
+        vm.createSelectFork(vm.rpcUrl("bsc"), mainnetForkBlock);
+
+        deployer = makeAddr("deployer");
+        assertEq(deployer, 0xaE0bDc4eEAC5E950B67C6819B118761CaAF61946);
+
+        startHoax(deployer);
+        swapBridge = new SwapBridge();
+        swapBridge.initialize(lzTokenBridge);
+        assertEq(address(swapBridge), 0x8Ad159a275AEE56fb2334DBb69036E9c7baCEe9b);
+
+        // fromUser
+        assertGt(usdt.balanceOf(fromUser), 1000 * 1e18);
+    }
+
+    // refund toToken leftover to user when toToken decimal is greater than 6
+    function test_SwapAndSendToAptos_Leftover() public {
+        swapBridge.approveMax(usdc, lzTokenBridge);
+        swapBridge.approveMax(usdt, paraswapTokenTransferProxy);
+        (uint256 nativeFee,) = swapBridge.quoteForSend();
+
+        startHoax(fromUser);
+        uint256 fromUserUsdcOrgBalance = usdc.balanceOf(fromUser);
+        SafeERC20.safeIncreaseAllowance(usdt, address(swapBridge), 1000 * 1e18);
+        swapBridge.swapAndSendToAptos{value: nativeFee + 100_000}(
+            usdt,
+            1000 * 1e18, // 1000 USDT
+            usdc,
+            999 * 1e18,
+            hex"01",
+            paraswapAugustusSwapper,
+            hex"a6886da9000000000000000000000000000000000000000000000000000000000000002000000000000000000000000055d398326f99059ff775485246999027b31979550000000000000000000000008ac76a51cc950d9822d68b83fe1ad97b32cd580d00000000000000000000000083c346ba3d4bf36b308705e24fad80999401854b00000000000000000000000000000000000000000000003635c9adc5dea00000000000000000000000000000000000000000000000000036334349dc0a37b22a0000000000000000000000000000000000000000000000363a3435eb222baf90010000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000661ebe4a00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c00000000000000000000000000000000000000000000000000000000000000220342c4e308acc42bc98dd7ce42836a0c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002b55d398326f99059ff775485246999027b31979550000648ac76a51cc950d9822d68b83fe1ad97b32cd580d0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        );
+        assertEq(address(swapBridge).balance, 0);
+        assertGt(usdc.balanceOf(fromUser), fromUserUsdcOrgBalance);
+        assertLt(usdc.balanceOf(fromUser), fromUserUsdcOrgBalance + 1e18);
+        assertEq(usdt.balanceOf(address(swapBridge)), 0);
+        assertEq(usdc.balanceOf(address(swapBridge)), 0);
     }
 }

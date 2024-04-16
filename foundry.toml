@@ -19,20 +19,20 @@ optimism-sepolia = "https://optimism-sepolia.infura.io/v3/${INFURA_KEY}"
 
 [etherscan]
 mainnet = { key = "${ETHERSCAN_KEY}" }
-sepolia = { key = "${ETHERSCAN_KEY}" } # ok
+sepolia = { key = "${ETHERSCAN_KEY}" }
 
 bsc = { key = "${BSCSCAN_KEY}" }
-bsc-testnet = { key = "${BSCSCAN_KEY}" } # ok
+bsc-testnet = { key = "${BSCSCAN_KEY}" }
 
 polygon = { key = "${POLYGONSCAN_KEY}" }
 
 avalanche = { key = "verifyContract" }
-avalanche-fuji = { key = "verifyContract" } # ok
+avalanche-fuji = { key = "verifyContract" }
 
 arbitrum = { key = "${ARBISCAN_KEY}" }
-arbitrum-sepolia = { key = "${ARBISCAN_KEY}" } # ok
+arbitrum-sepolia = { key = "${ARBISCAN_KEY}" }
 
 optimism = { key = "${OPTIMISTIC_ETHERSCAN_KEY}" }
-optimism-sepolia = { key = "${OPTIMISTIC_ETHERSCAN_KEY}" } # ok
+optimism-sepolia = { key = "${OPTIMISTIC_ETHERSCAN_KEY}" }
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
