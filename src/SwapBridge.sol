@@ -4,29 +4,44 @@ pragma solidity ^0.8.21;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ITokenBridge} from "LayerZero-Aptos-Contract/apps/bridge-evm/contracts/interfaces/ITokenBridge.sol";
 import {LzLib} from "@layerzerolabs/solidity-examples/contracts/libraries/LzLib.sol";
 
-contract SwapBridge is Ownable {
-    uint256 constant APT_AIRDROP_AMOUNT = 9904;
+contract SwapBridge is Ownable, Pausable {
+    uint256 constant APT_AIRDROP_AMOUNT = 9904; // signature for event collection on the Aptos side
 
     bool isInit;
     ITokenBridge tokenBridge;
+    address swapTarget;
 
-    constructor() Ownable(_msgSender()) {}
+    constructor(address _owner) Ownable(_owner) {}
 
-    function initialize(address _tokenBridgeAddress) public onlyOwner {
+    function initialize(address _tokenBridgeAddress, address _swapTarget) external onlyOwner {
         require(!isInit, "Already init");
         isInit = true;
         tokenBridge = ITokenBridge(_tokenBridgeAddress);
+        swapTarget = _swapTarget;
     }
 
-    function approveMax(IERC20 _token, address _spender) public {
+    function approveMax(IERC20 _token, address _spender) external {
         SafeERC20.forceApprove(_token, _spender, type(uint256).max);
     }
 
-    function quoteForSend() public view returns (uint256 nativeFee, uint256 zroFee) {
+    function _lzParams(bytes32 _aptosAddress)
+        private
+        view
+        returns (LzLib.CallParams memory callParams, bytes memory adapterParams)
+    {
+        callParams = LzLib.CallParams({refundAddress: payable(msg.sender), zroPaymentAddress: address(0x0)});
+        adapterParams = LzLib.buildAirdropAdapterParams(
+            10000, // uaGas
+            LzLib.AirdropParams({airdropAmount: APT_AIRDROP_AMOUNT, airdropAddress: _aptosAddress})
+        );
+    }
+
+    function quoteForSend() external view returns (uint256 nativeFee, uint256 zroFee) {
         (LzLib.CallParams memory callParams, bytes memory adapterParams) = _lzParams(hex"01");
         (nativeFee, zroFee) = tokenBridge.quoteForSend(callParams, adapterParams);
     }
@@ -37,15 +52,14 @@ contract SwapBridge is Ownable {
         IERC20 _toToken,
         uint256 _toAmount,
         bytes32 _aptosAddress,
-        address _swapTarget,
         bytes calldata _swapBytes
-    ) public payable {
+    ) external payable whenNotPaused {
         uint256 fromTokenOrgBalance = _fromToken.balanceOf(address(this));
         uint256 toTokenOrgBalance = _toToken.balanceOf(address(this));
 
         SafeERC20.safeTransferFrom(_fromToken, msg.sender, address(this), _fromAmount);
 
-        Address.functionCall(_swapTarget, _swapBytes);
+        Address.functionCall(swapTarget, _swapBytes);
 
         uint256 actualToAmount = _toToken.balanceOf(address(this)) - toTokenOrgBalance;
         require(actualToAmount >= _toAmount, "toAmount");
@@ -62,7 +76,7 @@ contract SwapBridge is Ownable {
         }
     }
 
-    function sendToAptos(IERC20 _token, uint256 _amount, bytes32 _aptosAddress) public payable {
+    function sendToAptos(IERC20 _token, uint256 _amount, bytes32 _aptosAddress) external payable whenNotPaused {
         uint256 tokenOrgBalance = _token.balanceOf(address(this));
 
         SafeERC20.safeTransferFrom(_token, msg.sender, address(this), _amount);
@@ -85,15 +99,11 @@ contract SwapBridge is Ownable {
         SafeERC20.safeTransfer(_token, _recipient, tokenBalance);
     }
 
-    function _lzParams(bytes32 _aptosAddress)
-        private
-        view
-        returns (LzLib.CallParams memory callParams, bytes memory adapterParams)
-    {
-        callParams = LzLib.CallParams({refundAddress: payable(msg.sender), zroPaymentAddress: address(0x0)});
-        adapterParams = LzLib.buildAirdropAdapterParams(
-            10000, // uaGas
-            LzLib.AirdropParams({airdropAmount: APT_AIRDROP_AMOUNT, airdropAddress: _aptosAddress})
-        );
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
     }
 }
