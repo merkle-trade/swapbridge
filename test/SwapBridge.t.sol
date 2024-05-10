@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity 0.8.25;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -40,7 +40,7 @@ contract SwapBridgeTest is Test {
         swapBridge = new SwapBridge(deployer);
         vm.prank(deployer);
         swapBridge.initialize(address(0x1), address(0x1));
-        vm.expectRevert("Already init");
+        vm.expectRevert(SwapBridge.AlreadyInitialized.selector);
         vm.prank(deployer);
         swapBridge.initialize(address(0x1), address(0x1));
     }
@@ -103,7 +103,7 @@ contract SwapBridgeTest is Test {
 
         startHoax(fromUser);
         SafeERC20.safeIncreaseAllowance(usdt, address(swapBridge), 1_000_000_000);
-        vm.expectRevert("toAmount");
+        vm.expectRevert(SwapBridge.InsufficientOutputAmount.selector);
         swapBridge.swapAndSendToAptos{value: nativeFee}(
             usdt,
             1_000_000_000, // 1000 USDT
