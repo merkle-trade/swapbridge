@@ -11,12 +11,6 @@ import {ITokenBridge} from "LayerZero-Aptos-Contract/apps/bridge-evm/contracts/i
 import {LzLib} from "@layerzerolabs/solidity-examples/contracts/libraries/LzLib.sol";
 
 contract SwapBridge is Ownable2Step, Pausable {
-    uint256 private constant APT_AIRDROP_AMOUNT = 9904; // signature for event collection on the Aptos side
-
-    bool private isInit;
-    ITokenBridge private tokenBridge;
-    address private swapTarget;
-
     event SwapAndSendToAptos(
         address fromToken,
         address toToken,
@@ -25,12 +19,17 @@ contract SwapBridge is Ownable2Step, Pausable {
         uint256 toAmount,
         bytes32 aptosAddress
     );
-
-    event SendToAptos(uint256 amount, bytes32 aptosAddress);
+    event SendToAptos(address token, uint256 amount, bytes32 aptosAddress);
 
     error AlreadyInitialized();
     error InsufficientOutputAmount();
     error NothingToRescue();
+
+    uint256 private constant APT_AIRDROP_AMOUNT = 9904; // signature for event collection on the Aptos side
+
+    bool private isInit;
+    ITokenBridge private tokenBridge;
+    address private swapTarget;
 
     constructor(address _owner) Ownable(_owner) {}
 
@@ -105,7 +104,7 @@ contract SwapBridge is Ownable2Step, Pausable {
             SafeERC20.safeTransfer(_token, msg.sender, _token.balanceOf(address(this)) - tokenOrgBalance);
         }
 
-        emit SendToAptos(_amount, _aptosAddress);
+        emit SendToAptos(address(_token), _amount, _aptosAddress);
     }
 
     function _sendToAptos(address _tokenAddress, uint256 _amount, bytes32 _aptosAddress) private {
