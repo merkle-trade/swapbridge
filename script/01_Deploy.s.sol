@@ -172,7 +172,7 @@ contract DeployScript_Optimism is DeployScript {
     }
 }
 
-// owner: 0xe0D2d6956c1D9fa49c29A69F2E49f5f176aa27fd
+// owner (deployer): 0xe0D2d6956c1D9fa49c29A69F2E49f5f176aa27fd
 
 // forge script script/01_Deploy.s.sol:DeployScript_Arbitrum --account deployer --broadcast --verify --slow
 // https://arbiscan.io/address/0xbf2685d3b22f9e4753aeacbc8f14fc73965c17f2
